@@ -4,6 +4,18 @@ import type { InferGetServerSidePropsType, GetServerSideProps } from 'next'
 import WordItem from '../components/WordItem'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
+import { Providers } from './providers'
+import { Button } from '@nextui-org/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from '@nextui-org/table'
+import { TableColumn } from '@nextui-org/react'
+import Link from 'next/link'
+import { Input } from '@nextui-org/input'
 
 type PartOfSpeechDefinition = {
   partOfSpeech: string
@@ -70,65 +82,87 @@ export default function Home({
     await postData()
   }
 
+  const onRowClick = async (origin: string) => {
+    await router.push(`/word/${origin}`)
+  }
+
   return (
-    <div className="container">
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <main>
+    <Providers>
+      <div className="container">
+        <Head>
+          <title>Create Next App</title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
         <main>
-          <div className="word-form">
-            <form onSubmit={handleSubmit}>
-              <input
+          <div>
+            <form className="flex mb-2 gap-2" onSubmit={handleSubmit}>
+              <Input
                 type="text"
                 name="origin"
                 value={inputData.origin}
                 onChange={handleInputChange}
                 placeholder="Origin"
               />
-              <input
+              <Input
                 type="text"
                 name="translation"
+                className="mx-8"
                 value={inputData.translation}
                 onChange={handleInputChange}
                 placeholder="Translation"
               />
-              <button type="submit">Add Word</button>
+              <Button type="submit">Add Word</Button>
             </form>
+
+            <Table aria-label="Words table">
+              <TableHeader>
+                <TableColumn>Origin</TableColumn>
+                <TableColumn>Translate</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {words.map((word, index) => (
+                  <TableRow key={index} onClick={() => onRowClick(word.origin)}>
+                    <TableCell>
+                      <p className="word-item__origin"> {word.origin}</p>
+                    </TableCell>
+                    <TableCell>
+                      <p className="word-item__translation">
+                        {word.translation}
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </main>
 
-        {words.map((word) => (
-          <WordItem word={word} key={word.origin} />
-        ))}
-      </main>
+        <style jsx>{`
+          .container {
+            min-height: 100vh;
+            padding: 0 0.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+          }
+        `}</style>
 
-      <style jsx>{`
-        .container {
-          min-height: 100vh;
-          padding: 0 0.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-      `}</style>
+        <style jsx global>{`
+          html,
+          body {
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+              Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
+              sans-serif;
+          }
 
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
-    </div>
+          * {
+            box-sizing: border-box;
+          }
+        `}</style>
+      </div>
+    </Providers>
   )
 }

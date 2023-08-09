@@ -1,6 +1,10 @@
 import clientPromise from '../../lib/mongodb'
+import { NextApiRequest, NextApiResponse } from 'next'
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   switch (req.method) {
     case 'POST': {
       return addPost(req, res)
@@ -8,7 +12,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function addPost(req, res) {
+async function addPost(req: NextApiRequest, res: NextApiResponse) {
   try {
     const client = await clientPromise
     const db = client.db('db')
@@ -19,7 +23,7 @@ async function addPost(req, res) {
     })
   } catch (error) {
     return res.json({
-      message: new Error(error).message,
+      message: error instanceof Error ? error.message : 'An error occurred',
       success: false,
     })
   }
