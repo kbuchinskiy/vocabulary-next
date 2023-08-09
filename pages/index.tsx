@@ -2,6 +2,8 @@ import Head from 'next/head'
 import clientPromise from '../lib/mongodb'
 import type { InferGetServerSidePropsType, GetServerSideProps } from 'next'
 import WordItem from '../components/WordItem'
+import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 type PartOfSpeechDefinition = {
   partOfSpeech: string
@@ -41,6 +43,33 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
 export default function Home({
   words,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const [inputData, setInputData] = useState({ origin: '', translation: '' })
+  const router = useRouter()
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputData((prevState) => ({
+      ...prevState,
+      [e.target.name]: e.target.value,
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const postData = async () => {
+      const data = {
+        origin: inputData.origin,
+        translation: inputData.translation,
+      }
+
+      const response = await fetch('/api/word', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      return response.json()
+    }
+
+    await postData()
+  }
+
   return (
     <div className="container">
       <Head>
@@ -48,6 +77,28 @@ export default function Home({
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
+        <main>
+          <div className="word-form">
+            <form onSubmit={handleSubmit}>
+              <input
+                type="text"
+                name="origin"
+                value={inputData.origin}
+                onChange={handleInputChange}
+                placeholder="Origin"
+              />
+              <input
+                type="text"
+                name="translation"
+                value={inputData.translation}
+                onChange={handleInputChange}
+                placeholder="Translation"
+              />
+              <button type="submit">Add Word</button>
+            </form>
+          </div>
+        </main>
+
         {words.map((word) => (
           <WordItem word={word} key={word.origin} />
         ))}
