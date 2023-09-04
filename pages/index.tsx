@@ -1,11 +1,9 @@
 import Head from 'next/head'
 import clientPromise from '../lib/mongodb'
 import type { InferGetServerSidePropsType, GetServerSideProps } from 'next'
-import WordItem from '../components/WordItem'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Providers } from './providers'
-import { Button } from '@nextui-org/button'
 import {
   Table,
   TableBody,
@@ -14,8 +12,8 @@ import {
   TableRow,
 } from '@nextui-org/table'
 import { TableColumn } from '@nextui-org/react'
-import Link from 'next/link'
 import { Input } from '@nextui-org/input'
+import { Button } from '@nextui-org/button'
 
 type PartOfSpeechDefinition = {
   partOfSpeech: string
@@ -31,7 +29,7 @@ export type Word = {
 }
 
 type Props = {
-  words: Word[]
+  initialWords: Word[]
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async () => {
@@ -42,21 +40,31 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
     const words = await db.collection('words').find({}).toArray()
 
     return {
-      props: { words: JSON.parse(JSON.stringify(words)) },
+      props: { initialWords: JSON.parse(JSON.stringify(words)) },
     }
   } catch (e) {
     console.error(e)
     return {
-      props: { words: [] },
+      props: { initialWords: [] },
     }
   }
 }
 
 export default function Home({
-  words,
+  initialWords,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  const [inputData, setInputData] = useState({ origin: '', translation: '' })
   const router = useRouter()
+  const [inputData, setInputData] = useState({ origin: '', translation: '' })
+  const [words, setWords] = useState(initialWords)
+  const [error, setError] = useState('')
+
+  const sortedWords = useMemo(() => {
+    return [...words].reverse()
+  }, [words])
+
+  const isInputCorrect = (input: { origin: string; translation: string }) => {
+    return input.origin.length && input.translation.length
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputData((prevState) => ({
@@ -65,21 +73,35 @@ export default function Home({
     }))
   }
 
+  useEffect(() => {
+    if (isInputCorrect(inputData)) {
+      setError('')
+    }
+  }, [inputData])
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    const postData = async () => {
-      const data = {
-        origin: inputData.origin,
-        translation: inputData.translation,
+    e.preventDefault()
+
+    if (!isInputCorrect(inputData)) {
+      setError('Please, make sure input is correct')
+    } else {
+      const postData = async () => {
+        const data = inputData
+
+        const response = await fetch('/api/word', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        })
+        return response.json()
       }
 
-      const response = await fetch('/api/word', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      })
-      return response.json()
-    }
+      const { result } = await postData()
 
-    await postData()
+      setWords([...words, result])
+
+      setInputData({ origin: '', translation: '' })
+      setError('')
+    }
   }
 
   const onRowClick = async (origin: string) => {
@@ -110,9 +132,16 @@ export default function Home({
                 value={inputData.translation}
                 onChange={handleInputChange}
                 placeholder="Translation"
+                disabled
               />
               <Button type="submit">Add Word</Button>
             </form>
+
+            {error !== undefined && (
+              <p className="error" color={error ? 'danger' : 'success'}>
+                {error}
+              </p>
+            )}
 
             <Table aria-label="Words table">
               <TableHeader>
@@ -120,7 +149,7 @@ export default function Home({
                 <TableColumn>Translate</TableColumn>
               </TableHeader>
               <TableBody>
-                {words.map((word, index) => (
+                {sortedWords.map((word, index) => (
                   <TableRow key={index} onClick={() => onRowClick(word.origin)}>
                     <TableCell>
                       <p className="word-item__origin"> {word.origin}</p>
@@ -160,6 +189,10 @@ export default function Home({
 
           * {
             box-sizing: border-box;
+          }
+
+          .error {
+            color: darkred;
           }
         `}</style>
       </div>

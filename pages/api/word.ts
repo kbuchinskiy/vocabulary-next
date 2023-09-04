@@ -14,10 +14,12 @@ export default async function handler(
 
 async function addPost(req: NextApiRequest, res: NextApiResponse) {
   try {
+    const wordToAdd = JSON.parse(req.body)
     const client = await clientPromise
     const db = client.db('db')
     await db.collection('words').insertOne(JSON.parse(req.body))
     return res.json({
+      result: wordToAdd,
       message: 'Word added successfully',
       success: true,
     })
